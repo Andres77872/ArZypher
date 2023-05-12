@@ -5,6 +5,8 @@ from ArZypher.ArZypher import (
     pad
 )
 
+PRIVATE_KEY = 'rule the world'
+
 
 class MyTestCase(unittest.TestCase):
     def test_arzypher_encoder_void(self):
@@ -14,6 +16,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -31,6 +34,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -39,6 +43,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -57,6 +62,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -65,6 +71,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -83,6 +90,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -100,6 +108,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -108,6 +117,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -121,6 +131,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_arzypher_encoder_005(self):
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=None,
             check_sum=None,
             params_keys=[2, 2, 2],
@@ -137,6 +148,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -145,6 +157,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -153,7 +166,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('474=', b64)
+        self.assertEqual('uv4=', b64)
         self.assertEqual(None, key)
 
     def test_arzypher_encoder_007(self):
@@ -163,6 +176,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -171,17 +185,19 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
             encoded=b64,
             padding=None
         )
-        self.assertEqual('45MX2QL09ACqydL6-ctAOTQka3074ia9bGtE3RRi9Z0_', b64)
+        self.assertEqual('uva2S_c_dV001JqMgpwZztzbcBEAKqCjcxsj-GuYHWo_', b64)
         self.assertEqual(None, key)
 
     def test_arzypher_encoder_008(self):
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=None,
             check_sum=257,
             params_keys=[2, 2, 2],
@@ -198,6 +214,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -206,6 +223,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -217,6 +235,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_arzypher_encoder_010(self):
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=None,
             check_sum=-1,
             params_keys=[2, 2, 2],
@@ -233,6 +252,7 @@ class MyTestCase(unittest.TestCase):
         random_key = 16
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -241,6 +261,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -258,6 +279,7 @@ class MyTestCase(unittest.TestCase):
         random_key = 16
 
         b64, key = arzypher_encoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -266,6 +288,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         decode, key = arzypher_decoder(
+            private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -294,6 +317,7 @@ class MyTestCase(unittest.TestCase):
             random_key = None
 
             b64, key = arzypher_encoder(
+                private_key=PRIVATE_KEY,
                 random_key=random_key,
                 check_sum=check_sum,
                 params_keys=pkey,
@@ -302,6 +326,7 @@ class MyTestCase(unittest.TestCase):
             )
 
             decode, key = arzypher_decoder(
+                private_key=PRIVATE_KEY,
                 random_key=random_key,
                 check_sum=check_sum,
                 params_keys=pkey,

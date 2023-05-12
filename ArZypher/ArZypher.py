@@ -33,13 +33,17 @@ def xor(params_keys: list[int], params: list[int] | str) -> str:
         return ''.join(_r)
 
 
-def arzypher_encoder(random_key: int | None,
+def arzypher_encoder(private_key: str | None,
+                     random_key: int | None,
                      check_sum: int | None,
                      padding: int | bool | None,
                      params_keys: list[int],
                      params_data: list[int]) -> tuple[str, int | None]:
     """
     Generate Base64 code from int type data.
+
+    **private_key** must be a strong string password, this will be used only if the **check_sum**
+    is not None.
 
     If **random_key** is None or zero, the token generated always will be the same, this is util
     to generate URL with an image ID or another data that doesn't matter if the content is visible,
@@ -53,6 +57,7 @@ def arzypher_encoder(random_key: int | None,
 
     The **padding** is not implemented yet
 
+    :param private_key: ServerSide private key.
     :param random_key: (Optional) Bytes length for the random key, the Base64 code will be different each time.
     :param check_sum: (Optional) The Base64 will check the integrity before decoded, max value 256 (SHA256).
     :param padding: Not implemented yet.
@@ -83,7 +88,7 @@ def arzypher_encoder(random_key: int | None,
         binary_params_string = ''.join([f"{p:0{k}b}" for p, k in zip(params_data, params_keys)])
         random_key = 0
 
-    if check_sum is None:
+    if not isinstance(check_sum, int):
         check_sum = 0
 
     # Generate a fix_length
@@ -92,9 +97,12 @@ def arzypher_encoder(random_key: int | None,
 
     dg = ''
     if check_sum != 0:
+        if not isinstance(private_key, str):
+            private_key = ''
         _k = (binary_randomkey_string +
               binary_params_string +
-              ''.join(map(str, params_keys)))
+              ''.join(map(str, params_keys)) +
+              generate_hashcode(private_key, 256))
         dg = generate_hashcode(_k, check_sum)
 
     res = binary_randomkey_string + dg + binary_params_string
@@ -105,7 +113,8 @@ def arzypher_encoder(random_key: int | None,
     return b64.decode('utf-8'), raw_seed_int
 
 
-def arzypher_decoder(random_key: int | None,
+def arzypher_decoder(private_key: str | None,
+                     random_key: int | None,
                      check_sum: int | None,
                      padding: int | bool | None,
                      params_keys: list[int],
@@ -114,6 +123,7 @@ def arzypher_decoder(random_key: int | None,
     Decode a Base64 encoded with 'cph_encode',
     All params must be the same as the used in the encoded method.
 
+    :param private_key:
     :param random_key: (Optional) Bytes length for the random key, the Base64 code will be different each time.
     :param check_sum: (Optional) The Base64 will check the integrity before decode.
     :param padding: Not implemented yet.
@@ -150,11 +160,13 @@ def arzypher_decoder(random_key: int | None,
     # Calculate checksum
     if check_sum is not None and check_sum != 0:
         # fix_length = 24 - (sm % 24)
+        if not isinstance(private_key, str):
+            private_key = ''
         hs = t[: check_sum]
-        k = s + t[check_sum:sm] + ''.join([str(x) for x in params_keys])
+        k = s + t[check_sum:sm] + ''.join([str(x) for x in params_keys]) + generate_hashcode(private_key, 256)
         dg = generate_hashcode(k, check_sum)
-
         if dg != hs:
+            # print(dg, hs)
             return [0], None
         t = t[check_sum:]
     # else:
@@ -167,7 +179,6 @@ def arzypher_decoder(random_key: int | None,
     # Extract plaintext from decrypted ciphertext
     res = []
     t = rk
-    # print(t)
     for i in params_keys:
         res.append(int(t[:i], 2))
         t = t[i:]
