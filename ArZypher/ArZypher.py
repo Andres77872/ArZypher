@@ -2,6 +2,7 @@ import random
 import hashlib
 import secrets
 import base64
+import hmac
 
 
 def pad(value: str, max_length: int) -> str:
@@ -15,9 +16,10 @@ def pad(value: str, max_length: int) -> str:
     return value[:max_length].zfill(max_length)
 
 
-def generate_hashcode(key_string: str, max_length: int):
-    dg = hashlib.sha256(key_string.encode()).digest()
-    return format(int.from_bytes(dg, 'big'), 'b')[:max_length].zfill(max_length)
+def generate_hashcode(secret_key: str, key_string: str, max_length: int):
+    dg_hmac = hmac.new(secret_key.encode('utf-8'), key_string.encode("utf-8"), hashlib.sha256).digest()
+    # dg_sha256 = hashlib.sha256((secret_key + key_string).encode()).digest()
+    return format(int.from_bytes(dg_hmac, 'big'), 'b')[:max_length].zfill(max_length)
 
 
 def xor(params_keys: list[int], params: list[int] | str) -> str:
@@ -37,8 +39,8 @@ def arzypher_encoder(private_key: str | None,
                      random_key: int | None,
                      check_sum: int | None,
                      padding: int | bool | None,
-                     params_keys: list[int],
-                     params_data: list[int]) -> tuple[str, int | None]:
+                     params_keys: list[int] | list[list[type[str | int], int]],
+                     params_data: list[int] | list[str]) -> tuple[str, int | None]:
     """
     Generate Base64 code from int type data.
 
@@ -67,11 +69,51 @@ def arzypher_encoder(private_key: str | None,
     """
 
     if check_sum is not None and (check_sum > 256 or check_sum < 0):
-        return "", None
+        return '', None
+
+    _params_data = []
+    _params_keys = []
+    for pk, pd in zip(params_keys, params_data):
+        if isinstance(pd, int) and isinstance(pk, int):
+            _params_data.append(pd)
+            _params_keys.append(pk)
+        elif isinstance(pk, list):
+            _params_keys.append(pk[1])
+            if pk[0] in {str, int}:
+                if pk[0] == str:
+                    _b = bytes(pd[:pk[1] // 8], 'utf-8')
+                    _params_data.append(int.from_bytes(_b, 'big'))
+                elif pk[0] == int:
+                    _params_data.append(pd)
+            else:
+                return '', None
+        else:
+            return '', None
+    params_data = _params_data
+    params_keys = _params_keys
+
+    del _params_data
+    del _params_keys
 
     for x, y in zip(params_keys, params_data):
         if x <= 0 or 2 ** x - 1 < y:
             return '', None
+    if not isinstance(check_sum, int):
+        check_sum = 0
+
+    if not isinstance(random_key, int):
+        random_key = 0
+
+    # Generate a fix_length
+    sm = check_sum + random_key + sum(params_keys)
+
+    fix_length = sm % 8
+    if fix_length and random_key:
+        params_keys.append(8 - fix_length)
+        params_data.append(0)
+
+    # print(params_keys)
+    # print(params_data)
 
     binary_randomkey_string = ''
     raw_seed_int = None
@@ -86,14 +128,8 @@ def arzypher_encoder(private_key: str | None,
     else:
         # Generate a binary string with all params
         binary_params_string = ''.join([f"{p:0{k}b}" for p, k in zip(params_data, params_keys)])
-        random_key = 0
 
-    if not isinstance(check_sum, int):
-        check_sum = 0
-
-    # Generate a fix_length
-    # sm = check_sum + random_key + sum(params_keys)
-    # fix_length = (24 - sm % 24) % 24
+    # print(binary_params_string)
 
     dg = ''
     if check_sum != 0:
@@ -101,24 +137,25 @@ def arzypher_encoder(private_key: str | None,
             private_key = ''
         _k = (binary_randomkey_string +
               binary_params_string +
-              ''.join(map(str, params_keys)) +
-              generate_hashcode(private_key, 256))
-        dg = generate_hashcode(_k, check_sum)
-
+              ''.join(map(str, params_keys)))
+        dg = generate_hashcode(private_key, _k, check_sum)
+        # print(_k)
     res = binary_randomkey_string + dg + binary_params_string
 
     key = bytes([int(res[i:i + 8], 2) for i in range(0, len(res), 8)])
     b64 = base64.b64encode(key, altchars=b'_-')
+    b64 = b64.decode('utf-8')
+    b64 = b64.replace('=', '')
 
-    return b64.decode('utf-8'), raw_seed_int
+    return b64, raw_seed_int
 
 
 def arzypher_decoder(private_key: str | None,
                      random_key: int | None,
                      check_sum: int | None,
                      padding: int | bool | None,
-                     params_keys: list[int],
-                     encoded: str) -> tuple[list[int], int | None]:
+                     params_keys: list[int] | list[list[type[str | int], int]],
+                     encoded: str) -> tuple[list[int] | list[str], int | None]:
     """
     Decode a Base64 encoded with 'cph_encode',
     All params must be the same as the used in the encoded method.
@@ -134,12 +171,50 @@ def arzypher_decoder(private_key: str | None,
     if check_sum is not None and (check_sum > 256 or check_sum < 0):
         return [0], None
 
+    if len(encoded) % 4 == 1:
+        return [0], None
+
+    padding_fix = (4 - len(encoded) % 4) % 4
+    encoded = encoded + "=" * padding_fix if padding_fix else encoded
+
     if random_key is None:
         random_key = 0
     if check_sum is None:
         check_sum = 0
 
+    _params_keys = []
+    _pd = []
+    for pk in params_keys:
+        if isinstance(pk, int):
+            _params_keys.append(pk)
+            _pd.append(int)
+        elif isinstance(pk, list):
+            if pk[0] in {str, int}:
+                _params_keys.append(pk[1])
+                _pd.append(pk[0])
+            else:
+                return [0], None
+        else:
+            return [0], None
+
+    params_keys = _params_keys
+
+    # print(params_keys)
+    # print(_pd)
+
+    del _params_keys
+
     sm = random_key + check_sum + sum(params_keys)
+
+    # Generate a fix_length
+    _fx = False
+    fix_length = sm % 8
+    if fix_length and random_key:
+        params_keys.append(8 - fix_length)
+        _fx = True
+        sm += 8 - fix_length
+
+    # print(params_keys)
 
     # Decode base64 and convert to binary string
     d = base64.b64decode(encoded, altchars=b'_-')
@@ -163,15 +238,16 @@ def arzypher_decoder(private_key: str | None,
         if not isinstance(private_key, str):
             private_key = ''
         hs = t[: check_sum]
-        k = s + t[check_sum:sm] + ''.join([str(x) for x in params_keys]) + generate_hashcode(private_key, 256)
-        dg = generate_hashcode(k, check_sum)
+        k = s + t[check_sum:sm] + ''.join([str(x) for x in params_keys])
+
+        # print(t[check_sum:sm])
+
+        dg = generate_hashcode(private_key, k, check_sum)
         if dg != hs:
-            # print(dg, hs)
+            # print(dg)
+            # print(hs)
             return [0], None
         t = t[check_sum:]
-    # else:
-    #     fix_length = 24 - (sm % 24)
-    #     t = t[:fix_length]
 
     # Decrypt ciphertext
     rk = xor(params_keys, t) if random_key != 0 else t
@@ -179,8 +255,10 @@ def arzypher_decoder(private_key: str | None,
     # Extract plaintext from decrypted ciphertext
     res = []
     t = rk
-    for i in params_keys:
-        res.append(int(t[:i], 2))
+
+    for i, _p in zip(params_keys, _pd):
+        _di = int(t[:i], 2)
+        res.append(_di if _p == int else _di.to_bytes(len(t[:i]) // 8, 'big').decode('utf-8'))
         t = t[i:]
 
     return res, raw_seed
