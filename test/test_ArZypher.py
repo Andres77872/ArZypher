@@ -83,7 +83,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('Aw', b64)
+        self.assertEqual('wA', b64)
         self.assertEqual(None, key)
 
     def test_arzypher_encoder_003(self):
@@ -195,14 +195,14 @@ class MyTestCase(unittest.TestCase):
             encoded=b64,
             padding=None
         )
-        self.assertEqual('w9e_ee7Sl9EdqrACD-YCFZpGrPWOibIA1OVsfnnOc6Q_', b64)
+        self.assertEqual('jW5JEAlQd2UB-kzfPnRUtMyPvpZGecLq390kTyvUpST4', b64)
         self.assertEqual(None, key)
 
     def test_arzypher_encoder_008(self):
         b64, key = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=None,
-            check_sum=257,
+            check_sum=513,
             params_keys=[2, 2, 2],
             params_data=[3, 3, 2],
             padding=None
@@ -233,7 +233,7 @@ class MyTestCase(unittest.TestCase):
             encoded=b64,
             padding=None
         )
-        self.assertEqual('Pg', b64)
+        self.assertEqual('_A', b64)
         self.assertEqual(None, key)
 
     def test_arzypher_encoder_010(self):
@@ -417,7 +417,7 @@ class MyTestCase(unittest.TestCase):
             padding=True
         )
 
-        print(b64)
+        # print(b64)
         # print(b64[:64])
 
         decode, key = arzypher_decoder(
@@ -449,8 +449,8 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        print(b64)
-        print(len(b64))
+        # print(b64)
+        # print(len(b64))
         # print(b64[:64])
 
         decode, key = arzypher_decoder(
@@ -463,7 +463,121 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
+
         # self.assertNotEqual(None, key)
+
+    def test_arzypher_encoder_020(self):
+        pkey = [8, 24, 1]
+
+        inp = [1, 848158, 1]
+        check_sum = None
+        random_key = None
+
+        # _PRIVATE_KEY = secrets.token_hex(32)
+        _PRIVATE_KEY = ''
+
+        b64, key = arzypher_encoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            params_data=inp,
+            padding=None
+        )
+
+        # print(b64)
+        # print(len(b64))
+        # print(b64[:64])
+
+        decode, key = arzypher_decoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            encoded=b64,
+            padding=None
+        )
+
+        self.assertEqual(inp, decode)
+        self.assertEqual(None, key)
+
+    def test_arzypher_encoder_021(self):
+        for i in range(100):
+            # print(i)
+            pkey = []
+            inp = []
+            for j in range(secrets.randbits(8)):
+                _s = secrets.randbits(8) + 1
+                pkey.append(_s)
+                inp.append(secrets.randbits(_s))
+            check_sum = secrets.choice([None, secrets.randbits(9)])
+            random_key = secrets.choice([None, secrets.randbits(8)])
+
+            _PRIVATE_KEY = secrets.token_hex(32)
+            # _PRIVATE_KEY = ''
+
+            b64, key_e = arzypher_encoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                params_data=inp,
+                padding=None
+            )
+
+            # print(b64)
+            # print(len(b64))
+            # print(b64[:64])
+
+            decode, key_d = arzypher_decoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                encoded=b64,
+                padding=None
+            )
+
+            self.assertEqual(inp, decode)
+            self.assertEqual(key_e, key_d)
+
+    def test_arzypher_encoder_Z(self):
+        for i in range(100):
+            pkey = []
+            inp = []
+            for j in range(secrets.randbits(8)):
+                _s = secrets.randbits(8) + 1
+                pkey.append(_s)
+                inp.append(secrets.randbits(_s))
+            check_sum = secrets.choice([None, secrets.randbits(8)])
+            random_key = secrets.choice([None, secrets.randbits(8)])
+
+            _PRIVATE_KEY = secrets.token_hex(32)
+
+            b64, key_e = arzypher_encoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                params_data=inp,
+                padding=None
+            )
+
+            # print(b64)
+            # print(len(b64))
+            # print(b64[:64])
+
+            decode, key_d = arzypher_decoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                encoded=b64,
+                padding=None
+            )
+
+            self.assertEqual(inp, decode)
+            self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_X(self):
         total = 0
@@ -494,6 +608,42 @@ class MyTestCase(unittest.TestCase):
             total += time.time() - st
         print(total)
         self.assertLess(total, 2)
+
+    def test_arzypher_encoder_Y(self):
+        private_key = ''
+        params_keys = [
+            8,
+            24,
+            1
+        ]
+        params_data = [
+            1,
+            848158,
+            1
+        ]
+        check_sum = 15  # HS256
+        random_key = None  # 32 bits for the random token generator
+
+        b64, key = arzypher_encoder(
+            private_key=private_key,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=params_keys,
+            params_data=params_data,
+            padding=None
+        )
+
+        print(b64)
+
+        decode, key = arzypher_decoder(
+            private_key=private_key,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=params_keys,
+            encoded=b64,
+            padding=None
+        )
+        print(decode)
 
 
 if __name__ == '__main__':

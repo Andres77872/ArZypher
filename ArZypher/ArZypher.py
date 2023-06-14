@@ -17,8 +17,15 @@ def pad(value: str, max_length: int) -> str:
 
 
 def generate_hashcode(secret_key: str, key_string: str, max_length: int):
-    dg_hmac = hmac.new(secret_key.encode('utf-8'), key_string.encode("utf-8"), hashlib.sha256).digest()
-    # dg_sha256 = hashlib.sha256((secret_key + key_string).encode()).digest()
+    if max_length <= 256:
+        _h = hashlib.sha256
+    elif max_length <= 384:
+        _h = hashlib.sha384
+    else:
+        _h = hashlib.sha512
+
+    dg_hmac = hmac.new(secret_key.encode('utf-8'), key_string.encode("utf-8"), _h).digest()
+
     return format(int.from_bytes(dg_hmac, 'big'), 'b')[:max_length].zfill(max_length)
 
 
@@ -61,14 +68,14 @@ def arzypher_encoder(private_key: str | None,
 
     :param private_key: ServerSide private key.
     :param random_key: (Optional) Bytes length for the random key, the Base64 code will be different each time.
-    :param check_sum: (Optional) The Base64 will check the integrity before decoded, max value 256 (SHA256).
+    :param check_sum: (Optional) The Base64 will check the integrity before decoded, max value 512 (SHA512).
     :param padding: Not implemented yet.
     :param params_keys: List with the byte length for each data.
     :param params_data: List with the ints to be encoded.
     :return: Base64 string coded to be used as URL.
     """
 
-    if check_sum is not None and (check_sum > 256 or check_sum < 0):
+    if check_sum is not None and (check_sum > 512 or check_sum < 0):
         return '', None
 
     _params_data = []
@@ -108,7 +115,7 @@ def arzypher_encoder(private_key: str | None,
     sm = check_sum + random_key + sum(params_keys)
 
     fix_length = sm % 8
-    if fix_length and random_key:
+    if fix_length:
         params_keys.append(8 - fix_length)
         params_data.append(0)
 
@@ -168,7 +175,7 @@ def arzypher_decoder(private_key: str | None,
     :param encoded: Base64 encoded
     :return: List of int with the data decoded
     """
-    if check_sum is not None and (check_sum > 256 or check_sum < 0):
+    if check_sum is not None and (check_sum > 512 or check_sum < 0):
         return [0], None
 
     if len(encoded) % 4 == 1:
@@ -209,7 +216,7 @@ def arzypher_decoder(private_key: str | None,
     # Generate a fix_length
     _fx = False
     fix_length = sm % 8
-    if fix_length and random_key:
+    if fix_length:
         params_keys.append(8 - fix_length)
         _fx = True
         sm += 8 - fix_length
@@ -219,6 +226,8 @@ def arzypher_decoder(private_key: str | None,
     # Decode base64 and convert to binary string
     d = base64.b64decode(encoded, altchars=b'_-')
     res = ''.join(['{:08b}'.format(i) for i in d])[-sm:]
+
+    # print(''.join(['{:08b}'.format(i) for i in d]))
 
     # Extract random seed and ciphertext
     if random_key is not None and random_key != 0:
