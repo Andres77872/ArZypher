@@ -24,6 +24,8 @@ def generate_hashcode(secret_key: str, key_string: str, max_length: int):
     else:
         _h = hashlib.sha512
 
+    secret_key = secret_key if secret_key else ''
+
     dg_hmac = hmac.new(secret_key.encode('utf-8'), key_string.encode("utf-8"), _h).digest()
 
     return format(int.from_bytes(dg_hmac, 'big'), 'b')[:max_length].zfill(max_length)
@@ -78,6 +80,15 @@ def arzypher_encoder(private_key: str | None,
     if check_sum is not None and (check_sum > 512 or check_sum < 0):
         return '', None
 
+    if not isinstance(check_sum, int):
+        check_sum = 0
+
+    if not isinstance(random_key, int):
+        random_key = 0
+
+    # if not isinstance(private_key, str):
+    #     private_key = ''
+
     _params_data = []
     _params_keys = []
     for pk, pd in zip(params_keys, params_data):
@@ -105,11 +116,6 @@ def arzypher_encoder(private_key: str | None,
     for x, y in zip(params_keys, params_data):
         if x <= 0 or 2 ** x - 1 < y:
             return '', None
-    if not isinstance(check_sum, int):
-        check_sum = 0
-
-    if not isinstance(random_key, int):
-        random_key = 0
 
     # Generate a fix_length
     sm = check_sum + random_key + sum(params_keys)
@@ -123,14 +129,18 @@ def arzypher_encoder(private_key: str | None,
     # print(params_data)
 
     binary_randomkey_string = ''
-    raw_seed_int = None
+    raw_seed_int = 0
 
     # Generate the binary random key string
     if random_key is not None and random_key != 0:
-        raw_seed_int = secrets.randbits(random_key)
+        raw_seed_int += secrets.randbits(random_key)
+        binary_randomkey_string = f"{raw_seed_int:0{random_key}b}"
+    if private_key is not None:
+        raw_seed_int += int.from_bytes(hashlib.sha256(private_key.encode('utf-8')).digest(), 'big')
+
+    if raw_seed_int != 0:
         # Initialize the native python random generator with the raw_seed_int
         random.seed(raw_seed_int)
-        binary_randomkey_string = f"{raw_seed_int:0{random_key}b}"
         binary_params_string = xor(params_keys, params_data)
     else:
         # Generate a binary string with all params
@@ -140,8 +150,6 @@ def arzypher_encoder(private_key: str | None,
 
     dg = ''
     if check_sum != 0:
-        if not isinstance(private_key, str):
-            private_key = ''
         _k = (binary_randomkey_string +
               binary_params_string +
               ''.join(map(str, params_keys)))
@@ -229,17 +237,22 @@ def arzypher_decoder(private_key: str | None,
 
     # print(''.join(['{:08b}'.format(i) for i in d]))
 
+    raw_seed = 0
+
     # Extract random seed and ciphertext
     if random_key is not None and random_key != 0:
         s = res[:random_key]
-        raw_seed = int(s, 2)
+        raw_seed += int(s, 2)
         t = res[random_key:]
-        random.seed(raw_seed)
     else:
         s = ''
-        raw_seed = None
-        random_key = 0
         t = res
+
+    if private_key is not None:
+        raw_seed += int.from_bytes(hashlib.sha256(private_key.encode('utf-8')).digest(), 'big')
+
+    if raw_seed != 0:
+        random.seed(raw_seed)
 
     # Calculate checksum
     if check_sum is not None and check_sum != 0:
@@ -259,7 +272,7 @@ def arzypher_decoder(private_key: str | None,
         t = t[check_sum:]
 
     # Decrypt ciphertext
-    rk = xor(params_keys, t) if random_key != 0 else t
+    rk = xor(params_keys, t) if raw_seed != 0 else t
 
     # Extract plaintext from decrypted ciphertext
     res = []

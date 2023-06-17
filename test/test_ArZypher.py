@@ -5,6 +5,8 @@ from ArZypher import arzypher_decoder, arzypher_encoder
 from ArZypher.ArZypher import (
     pad
 )
+import string
+import math
 
 PRIVATE_KEY = 'rule the world'
 
@@ -17,7 +19,7 @@ class MyTestCase(unittest.TestCase):
         random_key = None
 
         b64, key = arzypher_encoder(
-            private_key=PRIVATE_KEY,
+            private_key=None,
             random_key=random_key,
             check_sum=check_sum,
             params_keys=pkey,
@@ -26,7 +28,7 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual('', b64)
-        self.assertEqual(None, key)
+        self.assertEqual(0, key)
 
     def test_arzypher_encoder_001(self):
         pkey = [8]
@@ -34,7 +36,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = None
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -45,7 +47,7 @@ class MyTestCase(unittest.TestCase):
 
         # print(b64)
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -55,8 +57,8 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('CA', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('Gg', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_002(self):
         pkey = [2]
@@ -64,7 +66,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = None
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -73,7 +75,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -83,8 +85,8 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('wA', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('7Q', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_003(self):
         pkey = [2]
@@ -110,7 +112,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = None
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -119,7 +121,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -129,8 +131,8 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('_Q', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('1g', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_005(self):
         b64, key = arzypher_encoder(
@@ -150,7 +152,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = 10
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -159,7 +161,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -169,8 +171,8 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual('w-4', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('5zU', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_007(self):
         pkey = [2, 2, 2]
@@ -178,7 +180,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = 256
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -187,7 +189,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -195,8 +197,8 @@ class MyTestCase(unittest.TestCase):
             encoded=b64,
             padding=None
         )
-        self.assertEqual('jW5JEAlQd2UB-kzfPnRUtMyPvpZGecLq390kTyvUpST4', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('-F0SoQzKnJcfl8yv30aksNV-wA9rCWt_ZOwK-_JOd-nX', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_008(self):
         b64, key = arzypher_encoder(
@@ -216,7 +218,7 @@ class MyTestCase(unittest.TestCase):
         check_sum = 0
         random_key = None
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -225,7 +227,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -233,8 +235,8 @@ class MyTestCase(unittest.TestCase):
             encoded=b64,
             padding=None
         )
-        self.assertEqual('_A', b64)
-        self.assertEqual(None, key)
+        self.assertEqual('1w', b64)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_010(self):
         b64, key = arzypher_encoder(
@@ -476,7 +478,7 @@ class MyTestCase(unittest.TestCase):
         # _PRIVATE_KEY = secrets.token_hex(32)
         _PRIVATE_KEY = ''
 
-        b64, key = arzypher_encoder(
+        b64, key_e = arzypher_encoder(
             private_key=_PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -489,7 +491,7 @@ class MyTestCase(unittest.TestCase):
         # print(len(b64))
         # print(b64[:64])
 
-        decode, key = arzypher_decoder(
+        decode, key_d = arzypher_decoder(
             private_key=_PRIVATE_KEY,
             random_key=random_key,
             check_sum=check_sum,
@@ -499,11 +501,12 @@ class MyTestCase(unittest.TestCase):
         )
 
         self.assertEqual(inp, decode)
-        self.assertEqual(None, key)
+        self.assertEqual(key_e, key_d)
 
     def test_arzypher_encoder_021(self):
-        for i in range(100):
-            # print(i)
+        for i in range(10000):
+            # if i % 100 == 0:
+            #     print(i)
             pkey = []
             inp = []
             for j in range(secrets.randbits(8)):
@@ -540,6 +543,180 @@ class MyTestCase(unittest.TestCase):
 
             self.assertEqual(inp, decode)
             self.assertEqual(key_e, key_d)
+
+    def test_arzypher_encoder_022(self):
+        pkey = [8, 24, 1]
+        inp = [1, 1, 1]
+        check_sum = None
+        random_key = None
+
+        # _PRIVATE_KEY = secrets.token_hex(32)
+        _PRIVATE_KEY = 'rule the world'
+
+        b64, key_e = arzypher_encoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            params_data=inp,
+            padding=None
+        )
+
+        print(b64)
+        # print(len(b64))
+        # print(b64[:64])
+
+        decode, key_d = arzypher_decoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            encoded=b64,
+            padding=None
+        )
+
+        self.assertEqual(inp, decode)
+        self.assertEqual(key_e, key_d)
+
+    def test_arzypher_encoder_023(self):
+        pkey = [8, 8, 8, 8]
+        inp = [64, 64, 64, 64]
+        check_sum = None
+        random_key = None
+
+        b64, key_e = arzypher_encoder(
+            private_key=None,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            params_data=inp,
+            padding=None
+        )
+
+        print(b64)
+        # print(len(b64))
+        # print(b64[:64])
+
+        decode, key_d = arzypher_decoder(
+            private_key=None,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            encoded=b64,
+            padding=None
+        )
+
+        self.assertEqual(inp, decode)
+        self.assertEqual(key_e, key_d)
+
+    def test_arzypher_encoder_024(self):
+        pkey = [127, 240, 18]
+        inp = [1, 1, 1]
+        check_sum = 256
+        random_key = None
+        _PRIVATE_KEY = 'rule the world '
+        # _PRIVATE_KEY = None
+
+        b64, key_e = arzypher_encoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            params_data=inp,
+            padding=None
+        )
+
+        b64 = 'a'+b64[:-1]
+
+        print(b64)
+
+        # r1 = VMiTvhX4We9HajTIMXi2Lbd7MlshKCjEhVQz8VLkDOjnD1WfhlhMoW4OI4wlWHRUYZrvy7H5VG400z-NZBVbpQOEYy83nS8pAK06yCSGZPqc
+        # r2 = mWRMCl1VVBlIV90VEApRbht11ZWQlcqC1jKBnDt918GDiAD7wj3J_YKzflsk1A0z-zWrrfxIYAldXkfzIn7Z-uvmagTq_ce5SHokMbvRPZFa
+
+        # r3 =
+
+
+        # print(len(b64))
+        # print(b64[:64])
+
+        decode, key_d = arzypher_decoder(
+            private_key=_PRIVATE_KEY,
+            random_key=random_key,
+            check_sum=check_sum,
+            params_keys=pkey,
+            encoded=b64,
+            padding=None
+        )
+
+        self.assertEqual(inp, decode)
+        self.assertEqual(key_e, key_d)
+
+    def test_arzypher_encoder_ENTROPY(self):
+        def shannon_entropy(data):
+            """
+            Adapted from http://blog.dkbza.org/2007/05/scanning-data-for-entropy-anomalies.html
+            by way of truffleHog (https://github.com/dxa4481/truffleHog)
+            """
+            if not data:
+                return 0
+            entropy = 0
+            for x in string.printable:
+                p_x = float(data.count(x)) / len(data)
+                if p_x > 0:
+                    entropy += - p_x * math.log(p_x, 2)
+            return entropy
+
+        max_e = 0
+        mean_e = 0
+        min_e = 100
+
+        for i in range(1000):
+            pkey = []
+            inp = []
+            for j in range(secrets.randbits(8) + 8):
+                _s = 32 + secrets.randbits(8)
+                pkey.append(_s)
+                inp.append(secrets.randbits(_s))
+            check_sum = 256
+            random_key = 32
+
+            _PRIVATE_KEY = secrets.token_hex(32)
+            # _PRIVATE_KEY = ''
+
+            b64, key_e = arzypher_encoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                params_data=inp,
+                padding=None
+            )
+
+            entropy = shannon_entropy(b64)
+            # print(entropy)
+            if entropy > max_e:
+                max_e = entropy
+            if entropy < min_e:
+                # print(entropy, b64)
+                min_e = entropy
+
+            mean_e += entropy
+
+            decode, key_d = arzypher_decoder(
+                private_key=_PRIVATE_KEY,
+                random_key=random_key,
+                check_sum=check_sum,
+                params_keys=pkey,
+                encoded=b64,
+                padding=None
+            )
+
+            self.assertEqual(inp, decode)
+            self.assertEqual(key_e, key_d)
+
+        print('min', min_e)
+        print('mean', mean_e / 1000)
+        print('max', max_e)
 
     def test_arzypher_encoder_Z(self):
         for i in range(100):
