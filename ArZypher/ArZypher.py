@@ -7,7 +7,7 @@ import hmac
 
 def pad(value: str, max_length: int) -> str:
     """
-    Complete the binary string with zeros at the right if max_length is bigger the return a substring
+    Complete the binary string with zeros to the right if max_length is bigger, then return a substring.
 
     :param value: Binary string
     :param max_length: Max length
@@ -17,6 +17,15 @@ def pad(value: str, max_length: int) -> str:
 
 
 def generate_hashcode(secret_key: str, key_string: str, max_length: int):
+    """
+    Generate a truncated hash code based on the given secret key and key string.
+
+    :param secret_key: Secret key used for hashing.
+    :param key_string: Key string to be hashed.
+    :param max_length: Maximum length of the generated hash.
+    :return: Hash code as a binary string.
+    """
+    # Select hashing algorithm based on max_length.
     if max_length <= 256:
         _h = hashlib.sha256
     elif max_length <= 384:
@@ -24,18 +33,27 @@ def generate_hashcode(secret_key: str, key_string: str, max_length: int):
     else:
         _h = hashlib.sha512
 
+    # Fallback for an empty secret_key.
     secret_key = secret_key if secret_key else ''
 
+    # Generate HMAC digest and return as a formatted binary string.
     dg_hmac = hmac.new(secret_key.encode('utf-8'), key_string.encode("utf-8"), _h).digest()
-
     return format(int.from_bytes(dg_hmac, 'big'), 'b')[:max_length].zfill(max_length)
 
 
 def xor(params_keys: list[int], params: list[int] | str) -> str:
-    # XOR operation
+    """
+    Perform XOR operation on the given parameters with random bits.
+
+    :param params_keys: List of integers specifying the bit length for each parameter.
+    :param params: List of integers or a binary string to be XORed.
+    :return: Resulting binary string after the XOR operation.
+    """
+    # XOR operation for list inputs.
     if isinstance(params, list):
         return ''.join([f"{p ^ random.getrandbits(k):0{k}b}" for p, k in zip(params, params_keys)])
     else:
+        # XOR operation for string input.
         _r = []
         _c = 0
         for k in params_keys:
@@ -53,42 +71,28 @@ def arzypher_encoder(private_key: str | None,
     """
     Generate Base64 code from int type data.
 
-    **private_key** must be a strong string password, this will be used only if the **check_sum**
-    is not None.
+    **private_key** must be a strong string password, used only if the **check_sum** is not None.
+    **random_key**, if None or zero, generates a consistent token, useful for non-sensitive data.
+    **check_sum**, if None or zero, doesn't validate token integrity, allowing any compatible format.
+    The **padding** parameter is not implemented yet.
 
-    If **random_key** is None or zero, the token generated always will be the same, this is util
-    to generate URL with an image ID or another data that doesn't matter if the content is visible,
-    also the token generated will have fewer characters.
-
-    If **check_sum** is None or zero, then the values can be edited by the user and will accept any
-    token if it has a compatible format with the **params_keys**. If the token is compatible and was
-    deserialized, and the **random_key** is not Null or zero, the decrypted value will be an unexpected
-    value from 0-2^key_value but if both are None or zero the token will be just the **params_data** in
-    base64.
-
-    The **padding** is not implemented yet
-
-    :param private_key: ServerSide private key.
-    :param random_key: (Optional) Bytes length for the random key, the Base64 code will be different each time.
-    :param check_sum: (Optional) The Base64 will check the integrity before decoded, max value 512 (SHA512).
+    :param private_key: Server-side private key.
+    :param random_key: (Optional) Byte length for the random key; different Base64 code each time.
+    :param check_sum: (Optional) Base64 integrity check before decoding; max value 512 (SHA512).
     :param padding: Not implemented yet.
     :param params_keys: List with the byte length for each data.
     :param params_data: List with the ints to be encoded.
-    :return: Base64 string coded to be used as URL.
+    :return: Base64 string coded to be used as URL, and the raw seed integer.
     """
-
+    # Validate check_sum range.
     if check_sum is not None and (check_sum > 512 or check_sum < 0):
         return '', None
 
-    if not isinstance(check_sum, int):
-        check_sum = 0
+    # Ensure check_sum and random_key are integers.
+    check_sum = check_sum if isinstance(check_sum, int) else 0
+    random_key = random_key if isinstance(random_key, int) else 0
 
-    if not isinstance(random_key, int):
-        random_key = 0
-
-    # if not isinstance(private_key, str):
-    #     private_key = ''
-
+    # Prepare parameters data and keys.
     _params_data = []
     _params_keys = []
     for pk, pd in zip(params_keys, params_data):
@@ -110,57 +114,51 @@ def arzypher_encoder(private_key: str | None,
     params_data = _params_data
     params_keys = _params_keys
 
-    del _params_data
-    del _params_keys
+    # Clean up temporary variables.
+    del _params_data, _params_keys
 
+    # Validate parameter keys and data.
     for x, y in zip(params_keys, params_data):
         if x <= 0 or 2 ** x - 1 < y:
             return '', None
 
-    # Generate a fix_length
+    # Calculate the fixed length for encoding.
     sm = check_sum + random_key + sum(params_keys)
-
     fix_length = sm % 8
     if fix_length:
         params_keys.append(8 - fix_length)
         params_data.append(0)
 
-    # print(params_keys)
-    # print(params_data)
-
+    # Prepare binary random key string and raw seed integer.
     binary_randomkey_string = ''
     raw_seed_int = 0
-
-    # Generate the binary random key string
     if random_key is not None and random_key != 0:
         raw_seed_int += secrets.randbits(random_key)
         binary_randomkey_string = f"{raw_seed_int:0{random_key}b}"
     if private_key is not None:
         raw_seed_int += int.from_bytes(hashlib.sha256(private_key.encode('utf-8')).digest(), 'big')
 
+    # Initialize random generator with raw seed integer if it's non-zero.
     if raw_seed_int != 0:
-        # Initialize the native python random generator with the raw_seed_int
         random.seed(raw_seed_int)
         binary_params_string = xor(params_keys, params_data)
     else:
-        # Generate a binary string with all params
+        # Generate a binary string with all params.
         binary_params_string = ''.join([f"{p:0{k}b}" for p, k in zip(params_data, params_keys)])
 
-    # print(binary_params_string)
-
+    # Prepare hash digest if check_sum is non-zero.
     dg = ''
     if check_sum != 0:
-        _k = (binary_randomkey_string +
-              binary_params_string +
-              ''.join(map(str, params_keys)))
+        _k = (binary_randomkey_string + binary_params_string + ''.join(map(str, params_keys)))
         dg = generate_hashcode(private_key, _k, check_sum)
-        # print(_k)
+
+    # Compile the final binary string.
     res = binary_randomkey_string + dg + binary_params_string
 
+    # Convert to bytes and encode in Base64.
     key = bytes([int(res[i:i + 8], 2) for i in range(0, len(res), 8)])
     b64 = base64.b64encode(key, altchars=b'_-')
-    b64 = b64.decode('utf-8')
-    b64 = b64.replace('=', '')
+    b64 = b64.decode('utf-8').replace('=', '')
 
     return b64, raw_seed_int
 
@@ -172,56 +170,46 @@ def arzypher_decoder(private_key: str | None,
                      params_keys: list[int] | list[list[type[str | int], int]],
                      encoded: str) -> tuple[list[int] | list[str], int | None]:
     """
-    Decode a Base64 encoded with 'cph_encode',
-    All params must be the same as the used in the encoded method.
+    Decode a Base64 encoded string, ensuring all parameters match those used during encoding.
 
-    :param private_key:
-    :param random_key: (Optional) Bytes length for the random key, the Base64 code will be different each time.
-    :param check_sum: (Optional) The Base64 will check the integrity before decode.
+    :param private_key: Server-side private key.
+    :param random_key: (Optional) Byte length for the random key; affects code uniqueness.
+    :param check_sum: (Optional) Base64 integrity check before decoding.
     :param padding: Not implemented yet.
     :param params_keys: List with the byte length for each data.
-    :param encoded: Base64 encoded
-    :return: List of int with the data decoded
+    :param encoded: Base64 encoded string.
+    :return: List of decoded data (integers or strings), and the raw seed integer.
     """
+    # Validate check_sum and encoded string.
     if check_sum is not None and (check_sum > 512 or check_sum < 0):
         return [0], None
-
     if len(encoded) % 4 == 1:
         return [0], None
 
+    # Fix padding for Base64 decoding.
     padding_fix = (4 - len(encoded) % 4) % 4
     encoded = encoded + "=" * padding_fix if padding_fix else encoded
 
-    if random_key is None:
-        random_key = 0
-    if check_sum is None:
-        check_sum = 0
+    # Ensure random_key and check_sum are integers.
+    random_key = random_key if isinstance(random_key, int) else 0
+    check_sum = check_sum if isinstance(check_sum, int) else 0
 
+    # Prepare parameter keys and types.
     _params_keys = []
     _pd = []
     for pk in params_keys:
         if isinstance(pk, int):
             _params_keys.append(pk)
             _pd.append(int)
-        elif isinstance(pk, list):
-            if pk[0] in {str, int}:
-                _params_keys.append(pk[1])
-                _pd.append(pk[0])
-            else:
-                return [0], None
+        elif isinstance(pk, list) and pk[0] in {str, int}:
+            _params_keys.append(pk[1])
+            _pd.append(pk[0])
         else:
             return [0], None
-
     params_keys = _params_keys
 
-    # print(params_keys)
-    # print(_pd)
-
-    del _params_keys
-
+    # Calculate total bit length and fix_length if needed.
     sm = random_key + check_sum + sum(params_keys)
-
-    # Generate a fix_length
     _fx = False
     fix_length = sm % 8
     if fix_length:
@@ -229,18 +217,13 @@ def arzypher_decoder(private_key: str | None,
         _fx = True
         sm += 8 - fix_length
 
-    # print(params_keys)
-
-    # Decode base64 and convert to binary string
+    # Decode Base64 and convert to binary string.
     d = base64.b64decode(encoded, altchars=b'_-')
     res = ''.join(['{:08b}'.format(i) for i in d])[-sm:]
 
-    # print(''.join(['{:08b}'.format(i) for i in d]))
-
+    # Prepare raw seed from random key.
     raw_seed = 0
-
-    # Extract random seed and ciphertext
-    if random_key is not None and random_key != 0:
+    if random_key != 0:
         s = res[:random_key]
         raw_seed += int(s, 2)
         t = res[random_key:]
@@ -251,36 +234,27 @@ def arzypher_decoder(private_key: str | None,
     if private_key is not None:
         raw_seed += int.from_bytes(hashlib.sha256(private_key.encode('utf-8')).digest(), 'big')
 
+    # Initialize random generator with raw seed if non-zero.
     if raw_seed != 0:
         random.seed(raw_seed)
 
-    # Calculate checksum
-    if check_sum is not None and check_sum != 0:
-        # fix_length = 24 - (sm % 24)
-        if not isinstance(private_key, str):
-            private_key = ''
-        hs = t[: check_sum]
+    # Verify and remove checksum from data.
+    if check_sum != 0:
+        hs = t[:check_sum]
         k = s + t[check_sum:sm] + ''.join([str(x) for x in params_keys])
-
-        # print(t[check_sum:sm])
-
         dg = generate_hashcode(private_key, k, check_sum)
         if dg != hs:
-            # print(dg)
-            # print(hs)
             return [0], None
         t = t[check_sum:]
 
-    # Decrypt ciphertext
+    # Decrypt the remaining data.
     rk = xor(params_keys, t) if raw_seed != 0 else t
 
-    # Extract plaintext from decrypted ciphertext
+    # Extract and convert plaintext data from the decrypted binary string.
     res = []
-    t = rk
-
     for i, _p in zip(params_keys, _pd):
-        _di = int(t[:i], 2)
-        res.append(_di if _p == int else _di.to_bytes(len(t[:i]) // 8, 'big').decode('utf-8'))
-        t = t[i:]
+        _di = int(rk[:i], 2)
+        res.append(_di if _p == int else _di.to_bytes(len(rk[:i]) // 8, 'big').decode('utf-8'))
+        rk = rk[i:]
 
     return res, raw_seed
