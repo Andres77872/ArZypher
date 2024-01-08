@@ -626,7 +626,7 @@ class MyTestCase(unittest.TestCase):
             padding=None
         )
 
-        b64 = 'a'+b64[:-1]
+        # b64 = 'a'+b64[:-1]
 
         print(b64)
 
